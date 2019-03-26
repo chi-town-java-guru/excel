@@ -11,11 +11,16 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.poi.ss.usermodel.*;
@@ -25,50 +30,125 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.PageLoadStrategy;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriver.Navigation;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.safari.SafariDriver;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.Wait;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import io.appium.java_client.ios.IOSDriver;
+import io.appium.java_client.remote.IOSMobileCapabilityType;
 
 public class ExcelFileProcessor {
 
 	private List<String> cookies;
 	private HttpsURLConnection conn;
+	private static WebDriver driver;
 
 	private final String USER_AGENT = "Mozilla/5.0";
 
 	private static final String BASE_URL = "/Users/guru/Documents/workspace-spring-tool-suite-4-4.1.2.RELEASE/gs-maven-complete/src/main/java/edu/wgu/links/";
 
+	public static final String USERNAME = "gsugavanam";
+	public static final String ACCESS_KEY = "5ba57e8d-1337-460d-ba93-6f4ca75d7e24";
+	public static final String URL = "https://" + USERNAME + ":" + ACCESS_KEY + "@ondemand.saucelabs.com:443/wd/hub";
+
 	public static void main(String[] args) throws Exception {
 
 		String ssoLoginUrl = "https://sso.wgu.edu/WGULogin/wgulogin";
-		List<String> urls = loadFromExcelFile();
-		urls.remove(0);
+		Set<String> urls = loadFromExcelFile();
+		// urls.remove("CL_FULL_URL");
+		urls.removeIf(c -> !c.startsWith("https://"));
 
 		ExcelFileProcessor http = new ExcelFileProcessor();
 
 		// make sure cookies is turned on
 		CookieHandler.setDefault(new CookieManager());
 
-		// 1. Send a "GET" request, so that you can extract the form's data.
-		String page = http.getPageHtml(ssoLoginUrl);
-		String postParams = http.getFormParams(page, "ttes365", "4hL-h552XQMmwU#3");
-
-		// 2. Construct above post's content and then send a POST request for
-		// authentication
-		http.sendPost(ssoLoginUrl, postParams);
+//		// 1. Send a "GET" request, so that you can extract the form's data.
+//		String page = http.getPageHtml(ssoLoginUrl);
+//		String postParams = http.getFormParams(page, "gsenior", "B+3_z90G1ome$5L4");
+//
+//		// 2. Construct above post's content and then send a POST request for
+//		// authentication
+//		http.sendPost(ssoLoginUrl, postParams);
 
 		// 3. success then go to LRPS link.
 		List<String> errorUrls = new ArrayList<>();
 		List<String> cleanUrls = new ArrayList<>();
 		for (String url : urls) {
 			try {
-				String result = http.getPageHtml(url);
+				// String result = http.getPageHtml(url);
 				cleanUrls.add(url);
-				// System.out.println(result);
+				System.out.println(url);
 			} catch (Exception e) {
 				errorUrls.add(url);
 				// System.out.println("BAD URL="+url);
 			}
 		}
 		writeCleanUrlsToFile(cleanUrls);
-		writeErrorUrlsToFile(errorUrls);
+		// writeErrorUrlsToFile(errorUrls);
+		performIosMobileTesting(cleanUrls);
+	}
+
+	private static void performIosMobileTesting(List<String> cleanUrls) throws Exception {
+		DesiredCapabilities caps = DesiredCapabilities.iphone();
+		caps.setCapability("deviceName", "iPhone 8 Simulator");
+		caps.setCapability("deviceOrientation", "portrait");
+		caps.setCapability("platformVersion", "12.0");
+		caps.setCapability("platformName", "iOS");
+		caps.setCapability("browserName", "Safari");
+
+		driver = new IOSDriver<>(new URL(URL), caps);
+
+		/*
+		 * driver.get("https://sso.wgu.edu/WGULogin/wgulogin"); WebElement un =
+		 * driver.findElement(By.id("userName")); un.sendKeys("gsenior"); WebElement pwd
+		 * = driver.findElement(By.id("password")); pwd.sendKeys("B+3_z90G1ome$5L4");
+		 * WebElement signin = driver.findElement(By.id("loginButton")); signin.click();
+		 */
+		cleanUrls.forEach(c -> doIt(c));
+
+		driver.quit();
+
+	}
+
+	private static void doIt(String url) {
+		String copy = new String(url);
+		// driver.manage().timeouts().pageLoadTimeout(-1, TimeUnit.SECONDS);
+		driver.navigate().to(url);
+
+		if (driver.getCurrentUrl().contains("sso.wgu.edu")) {
+			WebElement un = driver.findElement(By.id("userName"));
+			un.sendKeys("gsenior");
+			WebElement pwd = driver.findElement(By.id("password"));
+			pwd.sendKeys("B+3_z90G1ome$5L4");
+			WebElement signin = driver.findElement(By.id("loginButton"));
+			signin.click();
+ 
+		}driver.navigate().to(url);
+
+		if (driver.getCurrentUrl().contains("access.wgu.edu")) {
+			WebElement un = driver.findElement(By.id("login-username"));
+			un.sendKeys("gsenior");
+			WebElement pwd = driver.findElement(By.id("login-password"));
+			pwd.sendKeys("B+3_z90G1ome$5L4");
+			WebElement signin = driver.findElement(By.className("btn"));
+			signin.click();
+			// driver.manage().timeouts().pageLoadTimeout(-1, TimeUnit.SECONDS);
+
+		}
+
+		System.out.println("URL  :" + driver.getCurrentUrl());
+		System.out.println("URL mobile compatible:" + url);
 	}
 
 	private static void writeErrorUrlsToFile(List<String> errorUrls) {
@@ -87,13 +167,9 @@ public class ExcelFileProcessor {
 			dataRow.createCell(0).setCellValue(url);
 		}
 
-		try {
-			FileOutputStream out = new FileOutputStream(new File(BASE_URL + "ErrorURLs.xlsx"));
+		try (FileOutputStream out = new FileOutputStream(new File(BASE_URL + "ErrorURLs.xlsx"));) {
 			workbook.write(out);
-
 			workbook.close();
-			out.close();
-
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -117,12 +193,9 @@ public class ExcelFileProcessor {
 			dataRow.createCell(0).setCellValue(url);
 		}
 
-		try {
-			FileOutputStream out = new FileOutputStream(new File(BASE_URL + "CleanURLs.xlsx"));
+		try (FileOutputStream out = new FileOutputStream(new File(BASE_URL + "CleanURLs.xlsx"));) {
 			workbook.write(out);
-
 			workbook.close();
-			out.close();
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -132,13 +205,12 @@ public class ExcelFileProcessor {
 
 	}
 
-	private static List<String> loadFromExcelFile() {
-		List<String> output = new ArrayList<>();
-		try {
-			FileInputStream file = new FileInputStream(new File(BASE_URL + "LRPS2.xlsx"));
+	private static Set<String> loadFromExcelFile() {
+		Set<String> output = new TreeSet<>();
+		try (FileInputStream file = new FileInputStream(new File(BASE_URL + "LRPS.xlsx"));
 
-			// Create Workbook instance holding reference to .xlsx file
-			XSSFWorkbook workbook = new XSSFWorkbook(file);
+				// Create Workbook instance holding reference to .xlsx file
+				XSSFWorkbook workbook = new XSSFWorkbook(file);) {
 
 			// Get first/desired sheet from the workbook
 			XSSFSheet sheet = workbook.getSheetAt(0);
@@ -156,13 +228,12 @@ public class ExcelFileProcessor {
 
 					// Check the cell type and format accordingly
 					if (cell.getColumnIndex() == 3) {
-						output.add(cell.getStringCellValue().replace("http://https", "https").replace("http://",
-								"https://"));
+						output.add(cell.getStringCellValue().replace("http://https", "https")
+								.replace("http://", "https://").replace("https://https://", "https://")
+								.replace("https://lhttps://", "https://"));
 					}
 				}
 			}
-			workbook.close();
-			file.close();
 		} catch (
 
 		Exception e) {
