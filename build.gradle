@@ -1,0 +1,107 @@
+buildscript {
+    ext {
+        springBootVersion = '2.1.2.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+group = 'com.erx'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.9'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+}
+
+ext {
+    set('springBootAdminVersion', '2.1.1')
+    set('springCloudVersion', 'Greenwich.RELEASE')
+}
+
+dependencies {
+
+    compile 'joda-time:joda-time:2.9.2'
+    compile 'org.jsoup:jsoup:1.11.3'
+    compile 'org.apache.poi:poi:3.17'
+    compile 'org.seleniumhq.selenium:selenium-java:3.141.59'
+    compile 'org.seleniumhq.webdriver:webdriver-selenium:0.9.7376'
+    compile 'io.appium:java-client:5.0.4'
+    compile 'org.apache.poi:poi-ooxml:3.17'
+
+    compile group: 'net.sourceforge.argparse4j', name: 'argparse4j', version: '0.8.1'
+
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+
+//    implementation 'org.springframework.boot:spring-boot-starter-activemq'
+//    implementation 'org.springframework.boot:spring-boot-starter-aop'
+//    implementation 'org.springframework.boot:spring-boot-starter-cache'
+//    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+//    implementation 'org.springframework.boot:spring-boot-starter-integration'
+//    implementation 'org.springframework.boot:spring-boot-starter-jersey'
+//    implementation 'org.springframework.boot:spring-boot-starter-mail'
+//    implementation 'org.springframework.boot:spring-boot-starter-security'
+//    implementation 'de.codecentric:spring-boot-admin-starter-client'
+//    implementation 'de.codecentric:spring-boot-admin-starter-server'
+//    implementation 'org.flywaydb:flyway-core'
+//    implementation 'org.springframework.cloud:spring-cloud-starter-oauth2'
+//    implementation 'org.springframework.kafka:spring-kafka'
+//    implementation 'org.springframework.retry:spring-retry'
+//    implementation 'org.springframework.session:spring-session-core'
+//    runtimeOnly 'com.h2database:h2'
+//    runtimeOnly 'mysql:mysql-connector-java'
+//    compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
+//    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+//    testImplementation 'org.springframework.kafka:spring-kafka-test'
+//    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+//    testImplementation 'org.springframework.security:spring-security-test'
+
+    compile group: 'io.jsonwebtoken', name: 'jjwt', version: '0.4'
+    compile 'org.testobject:testobject-appium-java-api:0.1.0'
+
+
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "de.codecentric:spring-boot-admin-dependencies:${springBootAdminVersion}"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+apply plugin: 'java'
+
+task(runIOS, dependsOn: 'classes', type: JavaExec) {
+    main = 'edu.wgu.links.ExcelFileProcessor'
+    args("--platform", "iOs", "--outputLocation", "C:\\Result", "--threadCount", "2")
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task(runAndroid, dependsOn: 'classes', type: JavaExec) {
+    main = 'edu.wgu.links.ExcelFileProcessor'
+    args("--platform", "Android", "--outputLocation", "C:\\Result", "--threadCount", "2")
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task(runIOSEmulator, dependsOn: 'classes', type: JavaExec) {
+    main = 'edu.wgu.links.ExcelFileProcessor'
+    args("--platform", "iOs", "--outputLocation", "C:\\Result", "--threadCount", "2", "--realDevice", "false")
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task(runAndroidEmulator, dependsOn: 'classes', type: JavaExec) {
+    main = 'edu.wgu.links.ExcelFileProcessor'
+    args("--platform", "Android", "--outputLocation", "C:\\Result", "--threadCount", "2", "--realDevice", "false")
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+defaultTasks 'runIOS'
